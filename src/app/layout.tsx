@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GoLedger TV - Challenge",
-  description: "Browse your favorite TV shows on the blockchain.",
+  title: "GoLedger TV - Séries",
+  description: "Explore suas séries favoritas no blockchain.",
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-screen flex flex-col font-sans">
