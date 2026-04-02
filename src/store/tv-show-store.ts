@@ -21,7 +21,7 @@ interface TvShowStore {
   setCreateModalOpen: (isOpen: boolean) => void;
   setCreateListModalOpen: (isOpen: boolean) => void;
   
-  // Watchlist Actions (Blockchain)
+  // Watchlist Actions
   fetchWatchlists: () => Promise<void>;
   createWatchlist: (title: string) => Promise<void>;
   updateWatchlistTitle: (oldTitle: string, newTitle: string) => Promise<void>;
@@ -34,7 +34,6 @@ interface TvShowStore {
 export const useTvShowStore = create<TvShowStore>()(
   persist(
     (set, get) => ({
-      // Initial state
       tvShows: [],
       watchlists: [],
       currentTvShow: null,
@@ -42,14 +41,12 @@ export const useTvShowStore = create<TvShowStore>()(
       isCreateModalOpen: false,
       isCreateListModalOpen: false,
 
-      // Basic Actions
       setTvShows: (shows) => set({ tvShows: shows }),
       setCurrentTvShow: (show) => set({ currentTvShow: show }),
       setSearchQuery: (query) => set({ searchQuery: query }),
       setCreateModalOpen: (isOpen) => set({ isCreateModalOpen: isOpen }),
       setCreateListModalOpen: (isOpen) => set({ isCreateListModalOpen: isOpen }),
 
-      // Blockchain Watchlist Logic
       fetchWatchlists: async () => {
         try {
           const [lists, allShows] = await Promise.all([
@@ -61,7 +58,6 @@ export const useTvShowStore = create<TvShowStore>()(
             if (!list.tvShows) return list;
             
             const enrichedShows = list.tvShows.map(showRef => {
-              // Try to find the full show by key OR by title (for legacy data)
               const fullShow = allShows.find(s => {
                 if (showRef["@key"] && s["@key"] === showRef["@key"]) return true;
                 if (showRef.title && s.title) {
@@ -70,7 +66,6 @@ export const useTvShowStore = create<TvShowStore>()(
                 return false;
               });
               
-              // Ensure we ALWAYS have both title and @key in the store
               return fullShow 
                 ? { title: fullShow.title, "@key": fullShow["@key"] } 
                 : showRef;
@@ -82,8 +77,6 @@ export const useTvShowStore = create<TvShowStore>()(
             };
           });
 
-          // Only update the main tvShows list if we're not currently in a filtered search view
-          // This prevents resetting the search results when opening dropdowns or detail pages
           set((state) => ({ 
             watchlists: enrichedWatchlists, 
             tvShows: state.searchQuery.trim() === '' ? allShows : state.tvShows 

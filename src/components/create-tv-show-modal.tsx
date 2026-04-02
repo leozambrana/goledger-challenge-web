@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,7 +11,6 @@ import { apiClient } from '../services/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTvShowStore } from '../store/tv-show-store';
 
-// Definindo o schema com tipos primitivos simples para evitar ambiguidades no Resolver
 const formSchema = z.object({
   title: z.string().min(2, "O título deve ter pelo menos 2 caracteres"),
   description: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres"),
@@ -56,13 +54,10 @@ export function CreateTvShowModal() {
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
-      {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={() => onClose(false)}
       />
-      
-      {/* Modal Content */}
       <div className="relative w-full max-w-lg bg-card/60 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-3xl overflow-hidden animate-in zoom-in-95 duration-300">
         <header className="px-8 pt-8 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

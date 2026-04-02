@@ -35,7 +35,6 @@ export function DeleteTvShowDialog({ title, isOpen, onClose }: DeleteTvShowDialo
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6 text-sm">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
       <div className="relative w-full max-w-md bg-card/60 backdrop-blur-2xl border border-destructive/20 shadow-2xl rounded-3xl p-8 overflow-hidden animate-in zoom-in-95 duration-300">
-        {/* Background glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-destructive/10 blur-[80px] -z-10" />
         
         <div className="flex flex-col items-center text-center space-y-6">

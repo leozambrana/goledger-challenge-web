@@ -18,14 +18,12 @@ export interface TvShowEntity extends TvShowBase {
   "@assetType": "tvShows";
   "@key"?: string;
   "@lastUpdated"?: string;
-  // Legacy or alternative field names from API
   name?: string;
   synopsis?: string;
   yearReleased?: number;
   releaseYear?: number;
 }
 
-// --- Seasons ---
 export interface SeasonBase {
   number: number;
   year: number;
@@ -35,13 +33,11 @@ export interface SeasonBase {
 export interface SeasonEntity extends SeasonBase {
   "@assetType": "seasons";
   "@key": string;
-  // Alternative fields
   seasonNumber?: number;
   yearReleased?: number;
   tvShowId?: string;
 }
 
-// --- Episodes ---
 export interface EpisodeBase {
   episodeNumber: number;
   title: string;
@@ -54,7 +50,6 @@ export interface EpisodeBase {
 export interface EpisodeEntity extends EpisodeBase {
   "@assetType": "episodes";
   "@key": string;
-  // Alternative fields
   number?: number;
   name?: string;
   synopsis?: string;
@@ -63,7 +58,6 @@ export interface EpisodeEntity extends EpisodeBase {
   seasonId?: string;
 }
 
-// --- Watchlists ---
 export interface WatchlistBase {
   title: string;
 }
@@ -75,7 +69,6 @@ export interface WatchlistEntity extends WatchlistBase {
   tvShows?: Array<{ title: string; "@key"?: string; "@assetType"?: string }>;
 }
 
-// --- Payloads ---
 export interface ApiPostPayload {
   asset?: unknown[];
   update?: Record<string, unknown>;

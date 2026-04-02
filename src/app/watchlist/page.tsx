@@ -75,7 +75,6 @@ export default function WatchlistPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
           {watchlists.map((list: WatchlistEntity) => (
             <div key={list["@key"]} className="group relative bg-card/40 backdrop-blur-xl border border-white/10 hover:border-rose-500/50 rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl shadow-rose-500/5 cursor-pointer overflow-hidden flex flex-col h-full ring-inset ring-white/5 ring-1">
-               {/* Aesthetic Background Gradient */}
                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-rose-500/10 transition-colors" />
                
                <div className="flex items-center justify-between mb-6 relative z-10">
@@ -102,11 +101,8 @@ export default function WatchlistPage() {
                   </div>
                </div>
                
-               <h3 className="text-2xl font-black tracking-tight line-clamp-1 relative z-10">{list.title}</h3>
-               <p className="text-muted-foreground mt-2 text-xs font-medium opacity-60 relative z-10 mb-8 font-mono truncate">
-                 ID: {list["@key"]}
-               </p>
-               
+               <h3 className="text-2xl font-black tracking-tight line-clamp-1 relative z-10 mb-8">{list.title}</h3>
+
                <div className="mt-auto relative z-10">
                  <h4 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3 opacity-50">Séries Salvas</h4>
                  <div className="flex flex-wrap gap-2">

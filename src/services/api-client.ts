@@ -117,12 +117,6 @@ export class ApiClient {
     if (!input || typeof input !== 'object') return input;
 
     const item = { ...input } as Record<string, unknown>;
-    const assetType = item['@assetType'];
-
-    if (assetType === 'tvShows') {
-      // Logic removed as per user request to avoid payload pollution
-    }
-
     return item;
   }
 
@@ -216,6 +210,73 @@ export class ApiClient {
       update: { ...update, "@assetType": assetType } 
     };
     return this.apiPost<unknown>('/invoke/updateAsset', payload);
+  }
+
+  async createSeason(tvShowKey: string, number: number, year: number): Promise<SeasonEntity> {
+    const payload: ApiPostPayload = {
+      asset: [
+        {
+          "@assetType": "seasons",
+          "tvShow": {
+            "@assetType": "tvShows",
+            "@key": tvShowKey
+          },
+          "year": year,
+          "number": number
+        }
+      ]
+    };
+    return this.apiPost<SeasonEntity>('/invoke/createAsset', payload);
+  }
+
+  async updateSeason(seasonKey: string, number: number, year: number): Promise<SeasonEntity> {
+    const payload: ApiPostPayload = {
+      key: { "@assetType": "seasons", "@key": seasonKey },
+      update: { 
+        "@assetType": "seasons",
+        "@key": seasonKey,
+        "number": number,
+        "year": year
+      }
+    };
+    return this.apiPost<SeasonEntity>('/invoke/updateAsset', payload);
+  }
+
+  async createEpisode(seasonKey: string, number: number, title: string, description: string, releaseDate: string, rating: number): Promise<EpisodeEntity> {
+    const payload: ApiPostPayload = {
+      asset: [
+        {
+          "@assetType": "episodes",
+          "season": {
+            "@assetType": "seasons",
+            "@key": seasonKey
+          },
+          "episodeNumber": number,
+          "title": title,
+          "description": description,
+          "releaseDate": releaseDate,
+          "rating": rating
+        }
+      ]
+    };
+    return this.apiPost<EpisodeEntity>('/invoke/createAsset', payload);
+  }
+
+  async updateEpisode(episodeKey: string, seasonKey: string, number: number, title: string, description: string, releaseDate: string, rating: number): Promise<EpisodeEntity> {
+    const payload: ApiPostPayload = {
+      key: { "@assetType": "episodes", "@key": episodeKey },
+      update: { 
+        "@assetType": "episodes",
+        "@key": episodeKey,
+        "season": { "@assetType": "seasons", "@key": seasonKey },
+        "episodeNumber": number,
+        "title": title,
+        "description": description,
+        "releaseDate": releaseDate,
+        "rating": rating
+      }
+    };
+    return this.apiPost<EpisodeEntity>('/invoke/updateAsset', payload);
   }
 
   async deleteAsset(assetType: string, key: AssetKey): Promise<unknown> {

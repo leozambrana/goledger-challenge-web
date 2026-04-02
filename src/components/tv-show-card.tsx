@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import * as React from 'react';
 import { Tv, Clapperboard, Heart, MoreVertical, Edit3, Trash2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { TvShowEntity } from '../types';
@@ -22,7 +21,6 @@ export function TvShowCard({ tvShow }: TvShowCardProps) {
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
 
-  // Generate a sophisticated gradient based on the title
   const gradients = [
     'from-indigo-500/80 via-blue-500/80 to-cyan-400/80',
     'from-violet-500/80 via-purple-500/80 to-fuchsia-400/80',
@@ -37,10 +35,9 @@ export function TvShowCard({ tvShow }: TvShowCardProps) {
   const Icon = tvShow.title.length % 2 === 0 ? Tv : Clapperboard;
 
   return (
-    <Card className="group relative flex flex-col h-full bg-card/40 backdrop-blur-xl border-white/10 hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-0 hover:z-10">
+    <div className="group relative flex flex-col h-full bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-xl hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-0 hover:z-10">
       <div className="flex flex-col h-full overflow-hidden rounded-[inherit]">
         <div className={`relative h-40 bg-linear-to-br ${gradient} flex items-center justify-center overflow-hidden`}>
-          {/* Decorative elements */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,0.3),transparent)]" />
           <div className="absolute inset-x-0 bottom-0 h-px bg-white/20" />
           
@@ -69,16 +66,16 @@ export function TvShowCard({ tvShow }: TvShowCardProps) {
           </Button>
         </div>
         
-        <CardHeader className="flex-none p-6 pb-6">
-          <CardTitle className="text-xl font-bold tracking-tight line-clamp-1 group-hover:text-primary transition-colors duration-300">
+        <div className="flex-none p-6 pb-6">
+          <h3 className="text-xl font-bold tracking-tight line-clamp-1 group-hover:text-primary transition-colors duration-300">
             {tvShow.title}
-          </CardTitle>
-          <CardDescription className="line-clamp-2 mt-3 mb-2 text-sm leading-relaxed text-muted-foreground/80 h-12 group-hover:text-muted-foreground transition-colors font-medium">
+          </h3>
+          <p className="line-clamp-2 mt-3 mb-2 text-sm leading-relaxed text-muted-foreground/80 h-12 group-hover:text-muted-foreground transition-colors font-medium">
             {tvShow.description}
-          </CardDescription>
-        </CardHeader>
+          </p>
+        </div>
         
-        <CardFooter className="mt-auto p-6 pt-0 flex gap-2">
+        <div className="mt-auto p-6 pt-0 flex gap-2">
           <Button asChild className="flex-2 h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/20 rounded-xl transition-all duration-300 group-hover:shadow-primary/40">
             <Link href={`/tv-shows/${encodeURIComponent(tvShow.title)}`} className="flex items-center justify-center gap-2">
               Detalhes
@@ -100,7 +97,7 @@ export function TvShowCard({ tvShow }: TvShowCardProps) {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-        </CardFooter>
+        </div>
       </div>
 
       {isMenuOpen && (
@@ -121,6 +118,6 @@ export function TvShowCard({ tvShow }: TvShowCardProps) {
         isOpen={isDeleteOpen} 
         onClose={() => setIsDeleteOpen(false)} 
       />
-    </Card>
+    </div>
   );
 }

@@ -38,8 +38,6 @@ export function AddShowToWatchlistModal({ watchlistTitle, isOpen, onClose }: Add
     setIsAdding(showTitle);
     try {
       await addToWatchlist(watchlistTitle, showTitle);
-      // We don't close immediately so the user can add more? 
-      // User said "choose a show", maybe just one at a time.
       onClose();
     } catch (error) {
       console.error(error);
