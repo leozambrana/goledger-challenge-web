@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from './providers';
+import { Navbar } from '../components/navbar';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GoLedger TV - Séries",
   description: "Explore suas séries favoritas no blockchain.",
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
@@ -26,11 +30,14 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-screen flex flex-col font-sans">
+      <body className="min-h-screen flex flex-col font-sans bg-background/50">
         <Providers>
-          {children}
+          <Navbar />
+          <main className="flex-1">
+            {children}
+          </main>
         </Providers>
       </body>
     </html>

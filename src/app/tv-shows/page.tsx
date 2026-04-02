@@ -9,17 +9,23 @@ import { Input } from '../../components/ui/input';
 import { apiClient } from '../../services/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '../../hooks/use-debounce';
+import { useTvShowStore } from '../../store/tv-show-store';
 import { CreateTvShowModal } from '../../components/create-tv-show-modal';
 
 export default function TvShowsPage() {
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const { searchQuery, setSearchQuery, setCreateModalOpen, tvShows, setTvShows } = useTvShowStore();
   const debouncedSearch = useDebounce(searchQuery, 400);
   
-  const { data: tvShows, isLoading, isFetching, isError, error, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: ['tv-shows', debouncedSearch],
     queryFn: () => debouncedSearch ? apiClient.searchTvShowsByTitle(debouncedSearch) : apiClient.searchTvShows(),
   });
+
+  React.useEffect(() => {
+    if (data) {
+      setTvShows(data);
+    }
+  }, [data, setTvShows]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -112,7 +118,7 @@ export default function TvShowsPage() {
           </div>
           <Button 
             size="icon" 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => setCreateModalOpen(true)}
             className="h-13 w-13 shrink-0 shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl transition-all hover:scale-105 active:scale-95" 
             title="Adicionar Série"
           >
@@ -123,10 +129,7 @@ export default function TvShowsPage() {
 
       {renderContent()}
 
-      <CreateTvShowModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
+      <CreateTvShowModal />
     </div>
   );
 }

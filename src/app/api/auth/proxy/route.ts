@@ -13,7 +13,7 @@ const getBasicAuthHeader = () => {
 };
 
 const getTargetUrl = (endpoint: string) => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '');
   if (!baseUrl) {
     throw new Error('NEXT_PUBLIC_API_BASE_URL must be set in environment variables');
   }

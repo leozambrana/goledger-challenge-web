@@ -10,6 +10,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { apiClient } from '../services/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTvShowStore } from '../store/tv-show-store';
 
 // Definindo o schema com tipos primitivos simples para evitar ambiguidades no Resolver
 const formSchema = z.object({
@@ -18,18 +19,12 @@ const formSchema = z.object({
   recommendedAge: z.number().min(0, "Mínimo 0").max(100, "Máximo 100"),
 });
 
-// Extraindo o tipo do schema
 type FormValues = z.infer<typeof formSchema>;
 
-interface CreateTvShowModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateTvShowModal({ isOpen, onClose }: CreateTvShowModalProps) {
+export function CreateTvShowModal() {
+  const { isCreateModalOpen: isOpen, setCreateModalOpen: onClose } = useTvShowStore();
   const queryClient = useQueryClient();
   
-  // Usando FormValues explicitamente no useForm e no zodResolver
   const { 
     register, 
     handleSubmit, 
@@ -49,7 +44,7 @@ export function CreateTvShowModal({ isOpen, onClose }: CreateTvShowModalProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ 'tv-shows' ] });
       reset();
-      onClose();
+      onClose(false);
     },
   });
 
@@ -64,7 +59,7 @@ export function CreateTvShowModal({ isOpen, onClose }: CreateTvShowModalProps) {
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={onClose}
+        onClick={() => onClose(false)}
       />
       
       {/* Modal Content */}
@@ -76,7 +71,7 @@ export function CreateTvShowModal({ isOpen, onClose }: CreateTvShowModalProps) {
              </div>
              <h2 className="text-2xl font-black tracking-tight">Nova Série de TV</h2>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-white/10 transition-colors">
+          <Button variant="ghost" size="icon" onClick={() => onClose(false)} className="rounded-full hover:bg-white/10 transition-colors">
             <X className="w-5 h-5" />
           </Button>
         </header>
@@ -119,7 +114,7 @@ export function CreateTvShowModal({ isOpen, onClose }: CreateTvShowModalProps) {
           </div>
 
           <div className="pt-6 flex gap-3">
-             <Button type="button" variant="outline" onClick={onClose} className="flex-1 h-12 rounded-2xl font-bold uppercase tracking-widest text-[10px]">
+             <Button type="button" variant="outline" onClick={() => onClose(false)} className="flex-1 h-12 rounded-2xl font-bold uppercase tracking-widest text-[10px]">
                 Cancelar
              </Button>
              <Button type="submit" disabled={mutation.isPending} className="flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
@@ -139,7 +134,7 @@ export function CreateTvShowModal({ isOpen, onClose }: CreateTvShowModalProps) {
           
           {mutation.isError && (
              <p className="text-[10px] font-black text-destructive uppercase tracking-wide text-center">
-                {(mutation.error as any)?.message || "Erro na criação."}
+                {mutation.error instanceof Error ? mutation.error.message : "Erro na criação."}
              </p>
           )}
         </form>

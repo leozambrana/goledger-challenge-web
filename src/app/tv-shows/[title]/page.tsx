@@ -7,8 +7,11 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../../components/ui/accordion';
-import { ChevronLeft, Calendar, Tv, Info, Clapperboard, Star, PlayCircle, Layers, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Calendar, Tv, Info, Clapperboard, Star, PlayCircle, Layers, AlertTriangle, Heart, MoreVertical, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useTvShowStore } from '../../../store/tv-show-store';
+import { cn } from '@/lib/utils';
+import { WatchlistDropdown } from '../../../components/watchlist-dropdown';
 
 function EpisodeList({ seasonKey }: { seasonKey: string }) {
   const { data: episodes, isLoading, isError } = useEpisodes(seasonKey);
@@ -137,7 +140,26 @@ interface PageProps {
 export default function TvShowDetailsPage({ params }: PageProps) {
   const { title: encodedTitle } = React.use(params);
   const title = decodeURIComponent(encodedTitle);
+  const { setCurrentTvShow, isFavoriteInAnyList, watchlists, removeFromWatchlist, fetchWatchlists } = useTvShowStore();
+  const [removingFrom, setRemovingFrom] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetchWatchlists();
+  }, [fetchWatchlists]);
   const { data: tvShow, isLoading, isError } = useTVShowDetails(title);
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
+  // Lists that contain this show
+  const inWatchlists = watchlists.filter((l) => 
+    l.tvShows?.some((s) => s.title === tvShow?.title)
+  );
+
+  React.useEffect(() => {
+    if (tvShow) {
+      setCurrentTvShow(tvShow);
+    }
+    return () => setCurrentTvShow(null);
+  }, [tvShow, setCurrentTvShow]);
 
   if (isLoading) {
     return (
@@ -182,10 +204,10 @@ export default function TvShowDetailsPage({ params }: PageProps) {
   const gradientIndex = tvShow.title.length % gradients.length;
   const gradient = gradients[gradientIndex];
   const Icon = tvShow.title.length % 2 === 0 ? Tv : Clapperboard;
+  const isFav = isFavoriteInAnyList(tvShow.title);
 
   return (
     <div className="min-h-screen pb-24 bg-background/50">
-      {/* Dynamic Hero Section */}
       <section className={`relative h-[45vh] bg-linear-to-br ${gradient} flex items-end overflow-hidden shadow-inner`}>
         <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12 scale-110 pointer-events-none">
            <Icon size={400} />
@@ -199,33 +221,52 @@ export default function TvShowDetailsPage({ params }: PageProps) {
             </Link>
           </Button>
           
-          <div className="max-w-4xl">
-            <div className="flex items-center gap-3 mb-6">
-              <Badge className="bg-white/10 text-white border-white/20 backdrop-blur-xl px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-sm">
-                 ENTIDADE BLOCKCHAIN
-              </Badge>
-              <Badge variant="secondary" className="bg-primary text-primary-foreground border-none shadow-lg px-3 py-1 text-[10px] font-black">
-                 CLASSIFICAÇÃO {tvShow.recommendedAge}+
-              </Badge>
+          <div className="max-w-4xl flex items-end justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-6">
+                <Badge className="bg-white/10 text-white border-white/20 backdrop-blur-xl px-3 py-1 text-[10px] font-black uppercase tracking-widest shadow-sm">
+                   ENTIDADE BLOCKCHAIN
+                </Badge>
+                <Badge variant="secondary" className="bg-primary text-primary-foreground border-none shadow-lg px-3 py-1 text-[10px] font-black">
+                   CLASSIFICAÇÃO {tvShow.recommendedAge}+
+                </Badge>
+              </div>
+              <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter drop-shadow-2xl mb-4 leading-none">
+                {tvShow.title}
+              </h1>
             </div>
-            <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter drop-shadow-2xl mb-4 leading-none">
-              {tvShow.title}
-            </h1>
+
+            <div className="relative">
+              <Button 
+                 size="icon" 
+                 variant="ghost"
+                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                 className={cn(
+                   "h-20 w-20 rounded-[2.5rem] backdrop-blur-3xl border border-white/20 transition-all duration-500 shadow-2xl shrink-0 mb-2 group z-50",
+                   isFav 
+                     ? "bg-rose-500 text-white border-rose-500/50 shadow-rose-500/40" 
+                     : "bg-white/10 text-white hover:bg-white/20"
+                 )}
+              >
+                 {isMenuOpen ? <MoreVertical size={28} /> : <Heart className={cn("h-8 w-8 transition-transform duration-300", isFav && "fill-current animate-pulse-slow scale-110")} />}
+              </Button>
+              
+              {isMenuOpen && (
+                <div className="absolute top-24 right-0 z-50">
+                   <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-40" onClick={() => setIsMenuOpen(false)} />
+                   <WatchlistDropdown showTitle={tvShow.title} onClose={() => setIsMenuOpen(false)} className="absolute top-0 right-0" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Main Content Layout */}
       <section className="container mx-auto px-6 -mt-10 relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
-          {/* Central Column - Content */}
           <div className="lg:col-span-2 space-y-10">
-            
-            {/* Seasons Archive (MOVED TOP) */}
             <SeasonsSection tvShowKey={tvShow["@key"] || ""} showTitle={tvShow.title} />
 
-            {/* Synopsis Card */}
             <div className="bg-card border rounded-3xl p-8 shadow-xl relative overflow-hidden group ring-1 ring-border/50">
               <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-5 transition-opacity pointer-events-none">
                  <Info size={120} />
@@ -240,42 +281,65 @@ export default function TvShowDetailsPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Sidebar - Details */}
           <aside className="space-y-8">
             <div className="bg-card border rounded-3xl p-8 shadow-xl sticky top-24 ring-1 ring-border/50">
               <h4 className="font-black mb-8 uppercase text-[10px] tracking-[0.3em] text-muted-foreground border-b border-border/50 pb-4">Ativos de Produção</h4>
               <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-1.5">
-                   <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">Classificação</span>
-                   <p className="font-bold text-sm tracking-tight text-foreground/90">Ativo TV Hyperledger</p>
+                   <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">Tipo Asset</span>
+                   <p className="font-bold text-sm tracking-tight text-foreground/90">GoLedger TV Show Asset</p>
                 </div>
                 <div className="space-y-1.5">
-                   <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">Recomendação etária</span>
+                   <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">Restrição</span>
                    <p className="font-bold text-sm tracking-tight text-foreground/90">Mínimo {tvShow.recommendedAge} anos</p>
                 </div>
-                <div className="space-y-2">
-                   <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">Identificador em Cadeia</span>
+                <div className="space-y-4">
+                   <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">ID Blockchain</span>
                    <p className="font-mono text-[9px] break-all leading-relaxed bg-muted/60 p-4 rounded-xl border border-dashed border-border/60 text-muted-foreground font-medium">
                       {tvShow["@key"]}
                    </p>
                 </div>
-                {tvShow["@lastUpdated"] && (
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">Sincronização Blockchain</span>
-                    <p className="font-bold text-sm tracking-tight text-foreground/90">
-                      {new Date(tvShow["@lastUpdated"]).toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                )}
               </div>
               
+              {inWatchlists.length > 0 && (
+                <div className="mt-8 space-y-3">
+                  <span className="text-[10px] uppercase font-black tracking-[0.2em] text-primary opacity-60">Presente nas Listas</span>
+                  <div className="flex flex-wrap gap-2">
+                     {inWatchlists.map(list => (
+                       <Badge 
+                        key={list["@key"]} 
+                        variant="secondary" 
+                        className="pl-4 pr-1.5 py-1.5 h-10 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border-rose-500/20 text-xs font-black uppercase tracking-wider rounded-xl transition-all group/badge max-w-full"
+                       >
+                         <span className="truncate max-w-35 inline-block">{list.title}</span>
+                         <button
+                           onClick={async () => {
+                             setRemovingFrom(list.title);
+                             await removeFromWatchlist(list.title, tvShow.title);
+                             setRemovingFrom(null);
+                           }}
+                           disabled={removingFrom === list.title}
+                           className="ml-3 p-1.5 hover:bg-rose-500 hover:text-white rounded-lg transition-colors bg-rose-500/10 border border-rose-500/20 group-hover/badge:border-rose-500/50"
+                         >
+                           {removingFrom === list.title ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                         </button>
+                       </Badge>
+                     ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="mt-10 space-y-4">
-                 <Button className="w-full h-14 text-xs font-black uppercase tracking-widest shadow-xl rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all group" size="lg">
-                    <Star className="mr-2 group-hover:fill-current" size={16} /> Adicionar à lista
-                 </Button>
-                 
-                 <Button variant="outline" className="w-full h-12 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl opacity-60 hover:opacity-100 hover:text-destructive border-dashed" size="sm">
-                    Sinalizar para revisão
+                 <Button 
+                   onClick={() => setIsMenuOpen(true)}
+                   className={cn(
+                     "w-full h-14 text-xs font-black uppercase tracking-widest shadow-xl rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all group",
+                     isFav ? "bg-rose-500 hover:bg-rose-600 shadow-rose-500/20" : "shadow-primary/20"
+                   )} 
+                   size="lg"
+                 >
+                    <Heart className={cn("mr-2 h-4 w-4", isFav && "fill-current")} />
+                    {isFav ? 'Gerenciar a Listas' : 'Favoritar em uma Lista'}
                  </Button>
               </div>
             </div>

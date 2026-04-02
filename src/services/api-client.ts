@@ -1,23 +1,20 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import {
   TvShowEntity,
+  TvShowBase,
   SeasonEntity,
   EpisodeEntity,
+  WatchlistEntity,
+  ApiResponse,
+  ApiPostPayload,
+  AssetKey,
 } from '../types';
 
 const isServer = typeof window === 'undefined';
 const PROXY_ROUTE = '/api/auth/proxy';
 
-// Matches the friend's robust patterns
 const MVCC_RETRY_LIMIT = 2;
 const MVCC_RETRY_DELAY_MS = 350;
-
-interface ApiResponse<T> {
-  result?: T;
-  docs?: T;
-  items?: T;
-  data?: T;
-}
 
 export class ApiClient {
   private axios: AxiosInstance;
@@ -36,29 +33,30 @@ export class ApiClient {
       const auth = Buffer.from(`${process.env.API_USERNAME}:${process.env.API_PASSWORD}`).toString('base64');
       this.axios.defaults.headers.common['Authorization'] = `Basic ${auth}`;
     }
-
-    // Add interceptor for logging/debugging like the friend's project if needed
   }
 
   private endpointUrl(path: string): string {
-    if (isServer) return path;
-    return `${PROXY_ROUTE}?endpoint=${encodeURIComponent(path)}`;
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    if (isServer) return normalizedPath;
+    return `${PROXY_ROUTE}?endpoint=${encodeURIComponent(normalizedPath)}`;
   }
 
-  private async apiPost<T>(endpoint: string, body: unknown): Promise<T> {
+  private async apiPost<T>(endpoint: string, body: ApiPostPayload): Promise<T> {
     for (let attempt = 0; attempt <= MVCC_RETRY_LIMIT; attempt += 1) {
       try {
         const response = await this.axios.post<T>(this.endpointUrl(endpoint), body);
         return response.data;
-      } catch (error: any) {
-        const message = error.response?.data?.message || error.message || '';
-        const isMvccConflict = error.response?.status >= 500 && message.includes('MVCC_READ_CONFLICT');
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          const message = error.response?.data?.message || error.message || '';
+          const isMvccConflict = error.response?.status && error.response.status >= 500 && message.includes('MVCC_READ_CONFLICT');
 
-        if (isMvccConflict && attempt < MVCC_RETRY_LIMIT) {
-          await new Promise((resolve) => 
-            setTimeout(resolve, MVCC_RETRY_DELAY_MS * (attempt + 1))
-          );
-          continue;
+          if (isMvccConflict && attempt < MVCC_RETRY_LIMIT) {
+            await new Promise((resolve) => 
+              setTimeout(resolve, MVCC_RETRY_DELAY_MS * (attempt + 1))
+            );
+            continue;
+          }
         }
         throw error;
       }
@@ -66,91 +64,63 @@ export class ApiClient {
     throw new Error('API Error: unexpected failure after retries.');
   }
 
-  private normalizeAssetRecord(input: unknown): any {
-    if (!input || typeof input !== 'object') return input;
+  private normalizeAssetRecord<T>(input: unknown): T {
+    if (!input || typeof input !== 'object') return input as T;
     
-    const item = { ...(input as Record<string, any>) };
+    const item = { ...input } as Record<string, unknown>;
     const assetType = item['@assetType'];
 
     if (assetType === 'tvShows') {
       return {
         ...item,
-        title: item.title ?? item.name,
-        name: item.name ?? item.title,
-        description: item.description ?? item.synopsis,
-        yearReleased: item.yearReleased ?? item.releaseYear,
-      };
+        title: (item.title as string) ?? (item.name as string),
+        description: (item.description as string) ?? (item.synopsis as string),
+        yearReleased: (item.yearReleased as number) ?? (item.releaseYear as number),
+      } as unknown as T;
     }
 
     if (assetType === 'seasons') {
+      const tvShow = item.tvShow as Record<string, unknown>;
       return {
         ...item,
-        number: item.number ?? item.seasonNumber,
-        seasonNumber: item.seasonNumber ?? item.number,
-        year: item.year ?? item.yearReleased,
-        tvShow: item.tvShow ?? (item.tvShowId ? { '@assetType': 'tvShows', '@key': item.tvShowId } : undefined),
-      };
+        number: (item.number as number) ?? (item.seasonNumber as number),
+        seasonNumber: (item.seasonNumber as number) ?? (item.number as number),
+        year: (item.year as number) ?? (item.yearReleased as number),
+        tvShow: tvShow ?? (item.tvShowId ? { '@assetType': 'tvShows', '@key': item.tvShowId } : undefined),
+      } as unknown as T;
     }
 
     if (assetType === 'episodes') {
+      const season = item.season as Record<string, unknown>;
       return {
         ...item,
-        title: item.title ?? item.name,
-        name: item.name ?? item.title,
-        episodeNumber: item.episodeNumber ?? item.number,
-        description: item.description ?? item.synopsis,
-        releaseDate: item.releaseDate ?? item.dateAired ?? item.airDate,
-        season: item.season ?? (item.seasonId ? { '@assetType': 'seasons', '@key': item.seasonId } : undefined),
-      };
+        title: (item.title as string) ?? (item.name as string),
+        name: (item.name as string) ?? (item.title as string),
+        episodeNumber: (item.episodeNumber as number) ?? (item.number as number),
+        description: (item.description as string) ?? (item.synopsis as string),
+        releaseDate: (item.releaseDate as string) ?? (item.dateAired as string) ?? (item.airDate as string),
+        season: season ?? (item.seasonId ? { '@assetType': 'seasons', '@key': item.seasonId } : undefined),
+      } as unknown as T;
     }
 
-    return item;
+    return item as T;
   }
 
-  private normalizeSearchResult<T>(response: Record<string, any>): T[] {
-    const rawData = response.result || response.docs || response.items || response.data || [];
+  private normalizeSearchResult<T>(response: ApiResponse<T[]>): T[] {
+    const rawData = response.result || response.docs || response.items || (response.data as T[]) || [];
     const collection = Array.isArray(rawData) ? rawData : [rawData];
-    return collection.map(item => this.normalizeAssetRecord(item));
+    return collection.map(item => this.normalizeAssetRecord<T>(item));
   }
 
-  private serializeAssetForWrite(input: any): any {
+  private serializeAssetForWrite(input: unknown): unknown {
     if (Array.isArray(input)) return input.map(i => this.serializeAssetForWrite(i));
     if (!input || typeof input !== 'object') return input;
 
-    const item = { ...input };
+    const item = { ...input } as Record<string, unknown>;
     const assetType = item['@assetType'];
 
     if (assetType === 'tvShows') {
-      if (item.title && !item.name) item.name = item.title;
-      if (item.yearReleased && !item.releaseYear) item.releaseYear = item.yearReleased;
-    }
-
-    if (assetType === 'seasons') {
-      if (item.number && !item.seasonNumber) item.seasonNumber = item.number;
-      if (item.year && !item.yearReleased) item.yearReleased = item.year;
-      
-      // Handle relation for write
-      if (!item.tvShowId && item.tvShow && typeof item.tvShow === 'object') {
-        item.tvShowId = (item.tvShow as any)['@key'];
-      }
-    }
-
-    if (assetType === 'episodes') {
-      if (item.title && !item.name) item.name = item.title;
-      if (item.episodeNumber && !item.number) item.number = item.episodeNumber;
-      if (item.releaseDate && !item.dateAired) item.dateAired = item.releaseDate;
-      
-      // Relation
-      if (!item.seasonId && item.season && typeof item.season === 'object') {
-        item.seasonId = (item.season as any)['@key'];
-      }
-
-      if (item.releaseDate) {
-        // Ensure RFC3339
-        if (typeof item.releaseDate === 'string' && !item.releaseDate.includes('T')) {
-          item.releaseDate = `${item.releaseDate}T00:00:00Z`;
-        }
-      }
+      // Logic removed as per user request to avoid payload pollution
     }
 
     return item;
@@ -159,10 +129,10 @@ export class ApiClient {
   // --- Public Methods ---
 
   async searchAssets<T>(assetType: string): Promise<T[]> {
-    const payload = {
+    const payload: ApiPostPayload = {
       query: { selector: { '@assetType': assetType } },
     };
-    const data = await this.apiPost<any>('/api/query/search', payload);
+    const data = await this.apiPost<ApiResponse<T[]>>('/query/search', payload);
     return this.normalizeSearchResult<T>(data);
   }
 
@@ -171,7 +141,7 @@ export class ApiClient {
   }
 
   async searchTvShowsByTitle(query: string): Promise<TvShowEntity[]> {
-    const payload = {
+    const payload: ApiPostPayload = {
       query: {
         selector: {
           '@assetType': 'tvShows',
@@ -179,7 +149,7 @@ export class ApiClient {
         },
       },
     };
-    const data = await this.apiPost<any>('/api/query/search', payload);
+    const data = await this.apiPost<ApiResponse<TvShowEntity[]>>('/query/search', payload);
     return this.normalizeSearchResult<TvShowEntity>(data);
   }
 
@@ -194,28 +164,63 @@ export class ApiClient {
   }
 
   async readTvShow(title: string): Promise<TvShowEntity> {
-    const payload = { key: { '@assetType': 'tvShows', title } };
-    const data = await this.apiPost<ApiResponse<TvShowEntity>>('/api/query/readAsset', payload);
-    return this.normalizeAssetRecord(data.result || data);
+    const payload: ApiPostPayload = { key: { '@assetType': 'tvShows', title } };
+    const data = await this.apiPost<ApiResponse<TvShowEntity>>('/query/readAsset', payload);
+    return this.normalizeAssetRecord<TvShowEntity>(data.result || data);
   }
 
-  async createTvShow(asset: any): Promise<any> {
-    const payload = { asset: this.serializeAssetForWrite([ { ...asset, '@assetType': 'tvShows' } ]) };
-    return this.apiPost('/api/invoke/createAsset', payload);
+  async createTvShow(asset: TvShowBase): Promise<TvShowEntity> {
+    const payload: ApiPostPayload = { asset: this.serializeAssetForWrite([ { ...asset, '@assetType': 'tvShows' } ]) as unknown[] };
+    return this.apiPost<TvShowEntity>('/invoke/createAsset', payload);
   }
 
-  async updateTvShow(asset: any): Promise<any> {
-    const serialized = this.serializeAssetForWrite({ ...asset, '@assetType': 'tvShows' });
-    const payload = {
-      key: { '@assetType': 'tvShows', title: serialized.title },
-      update: serialized
+  async searchWatchlists(): Promise<WatchlistEntity[]> {
+    const payload: ApiPostPayload = {
+      query: { selector: { '@assetType': 'watchlist' } },
     };
-    return this.apiPost('/api/invoke/updateAsset', payload);
+    const data = await this.apiPost<ApiResponse<WatchlistEntity[]>>('/query/search', payload);
+    return this.normalizeSearchResult<WatchlistEntity>(data);
   }
 
-  async deleteAsset(assetType: string, key: Record<string, any>): Promise<any> {
-    const payload = { key: { ...key, '@assetType': assetType } };
-    return this.apiPost('/api/invoke/deleteAsset', payload);
+  async createWatchlist(title: string): Promise<WatchlistEntity> {
+    const payload: ApiPostPayload = {
+      asset: [
+        {
+          "@assetType": "watchlist",
+          "title": title
+        }
+      ]
+    };
+    return this.apiPost<WatchlistEntity>('/invoke/createAsset', payload);
+  }
+
+  async updateWatchlist(watchlistKey: string, tvShowIds: string[]): Promise<WatchlistEntity> {
+    const payload: ApiPostPayload = {
+      key: { 
+        "@assetType": "watchlist", 
+        "@key": watchlistKey 
+      },
+      update: { 
+        "@assetType": "watchlist",
+        "@key": watchlistKey,
+        "tvShowIds": tvShowIds
+      }
+    };
+    console.log('payload', payload);
+    return this.apiPost<WatchlistEntity>('/invoke/updateAsset', payload);
+  }
+
+  async updateAsset(assetType: string, key: AssetKey, update: Record<string, unknown>): Promise<unknown> {
+    const payload: ApiPostPayload = { 
+      key: { ...key, "@assetType": assetType }, 
+      update: { ...update, "@assetType": assetType } 
+    };
+    return this.apiPost<unknown>('/invoke/updateAsset', payload);
+  }
+
+  async deleteAsset(assetType: string, key: AssetKey): Promise<unknown> {
+    const payload: ApiPostPayload = { key: { ...key, '@assetType': assetType } };
+    return this.apiPost<unknown>('/invoke/deleteAsset', payload);
   }
 }
 
