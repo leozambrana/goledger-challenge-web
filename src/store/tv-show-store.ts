@@ -110,7 +110,8 @@ export const useTvShowStore = create<TvShowStore>()(
           const update = { 
             "@key": list["@key"],
             "@assetType": "watchlist",
-            "title": newTitle 
+            "title": newTitle,
+            "name": newTitle
           };
 
           await apiClient.updateAsset('watchlist', key, update);

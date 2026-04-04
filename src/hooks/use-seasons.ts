@@ -44,8 +44,12 @@ export function useUpdateSeason() {
 export function useDeleteSeason() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ seasonKey }: { seasonKey: string, tvShowKey: string }) => 
-      apiClient.deleteAsset('seasons', { "@key": seasonKey }),
+    mutationFn: ({ season, tvShowKey }: { season: SeasonEntity, tvShowKey: string }) => 
+      apiClient.deleteAsset('seasons', { 
+        "@key": season["@key"], 
+        "tvShow": season.tvShow || { "@assetType": "tvShows", "@key": tvShowKey },
+        "number": season.number
+      }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['seasons', variables.tvShowKey] });
     },
@@ -78,8 +82,12 @@ export function useUpdateEpisode() {
 export function useDeleteEpisode() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ episodeKey }: { episodeKey: string, seasonKey: string }) => 
-      apiClient.deleteAsset('episodes', { "@key": episodeKey }),
+    mutationFn: ({ episode, seasonKey }: { episode: EpisodeEntity, seasonKey: string }) => 
+      apiClient.deleteAsset('episodes', { 
+        "@key": episode["@key"],
+        "season": episode.season || { "@assetType": "seasons", "@key": seasonKey },
+        "episodeNumber": episode.episodeNumber
+      }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['episodes', variables.seasonKey] });
     },

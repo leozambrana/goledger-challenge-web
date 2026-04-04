@@ -181,7 +181,8 @@ export class ApiClient {
       asset: [
         {
           "@assetType": "watchlist",
-          "title": title
+          "title": title,
+          "name": title
         }
       ]
     };
@@ -190,24 +191,21 @@ export class ApiClient {
 
   async updateWatchlist(watchlistKey: string, tvShowIds: string[]): Promise<WatchlistEntity> {
     const payload: ApiPostPayload = {
-      key: { 
-        "@assetType": "watchlist", 
-        "@key": watchlistKey 
-      },
       update: { 
         "@assetType": "watchlist",
         "@key": watchlistKey,
-        "tvShowIds": tvShowIds
+        "tvShows": tvShowIds.map(id => ({
+          "@assetType": "tvShows",
+          "@key": id
+        }))
       }
     };
-    console.log('payload', payload);
     return this.apiPost<WatchlistEntity>('/invoke/updateAsset', payload);
   }
 
   async updateAsset(assetType: string, key: AssetKey, update: Record<string, unknown>): Promise<unknown> {
     const payload: ApiPostPayload = { 
-      key: { ...key, "@assetType": assetType }, 
-      update: { ...update, "@assetType": assetType } 
+      update: { ...key, ...update, "@assetType": assetType } 
     };
     return this.apiPost<unknown>('/invoke/updateAsset', payload);
   }
@@ -279,8 +277,8 @@ export class ApiClient {
     return this.apiPost<EpisodeEntity>('/invoke/updateAsset', payload);
   }
 
-  async deleteAsset(assetType: string, key: AssetKey): Promise<unknown> {
-    const payload: ApiPostPayload = { key: { ...key, '@assetType': assetType } };
+  async deleteAsset(assetType: string, identification: Record<string, unknown>): Promise<unknown> {
+    const payload: ApiPostPayload = { key: { ...identification, '@assetType': assetType } };
     return this.apiPost<unknown>('/invoke/deleteAsset', payload);
   }
 }

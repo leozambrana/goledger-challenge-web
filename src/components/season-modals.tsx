@@ -175,7 +175,7 @@ export function DeleteSeasonDialog({
   }, []);
 
   const handleDelete = () => {
-    mutation.mutate({ seasonKey: season["@key"], tvShowKey }, {
+    mutation.mutate({ season: season, tvShowKey }, {
       onSuccess: () => {
         onClose();
       }
